@@ -8,7 +8,7 @@ namespace Nets\Easy;
 class OrderItem {
 
   private $reference = '';
-  private $productName = '';
+  private $name = '';
   private $quantity = 0;
   private $unit = '';
   private $unitPrice = 0;
@@ -43,20 +43,20 @@ class OrderItem {
    * @return string
    *   The product name.
    */
-  public function getProductName() {
-    return $this->productName;
+  public function getName() {
+    return $this->name;
   }
 
   /**
    * Set product name for this order item.
    *
-   * @param string $productName
+   * @param string $name
    *   The product name.
    *
    * @return $this
    */
-  public function setProductName($productName) {
-    $this->productName = $productName;
+  public function setName($name) {
+    $this->name = $name;
 
     return $this;
   }
@@ -134,7 +134,7 @@ class OrderItem {
   }
 
   /**
-   * Get the total amount base on unit and unit price.
+   * Get the total amount based on unit and unit price.
    *
    * @return float|int
    *   The total amount for this item.
@@ -152,7 +152,7 @@ class OrderItem {
   public function toArray() {
     $item = [
       'reference' => $this->getReference(),
-      'name' => $this->getProductName(),
+      'name' => $this->getName(),
       'quantity' => $this->getQuantity(),
       'unit' => $this->getUnit(),
       'unitPrice' => $this->getUnitPrice(),

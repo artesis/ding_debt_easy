@@ -41,7 +41,7 @@ function ding_debt_easy_payment_get_url($amount, $params, $callback) {
   foreach ($params['debts'] as $id => $debt) {
     $item = new OrderItem();
     $item->setReference($id)
-      ->setProductName($debt->type)
+      ->setName($debt->type)
       ->setQuantity(1)
       ->setUnit('stk')
       ->setUnitPrice($debt->amount * 100);
@@ -70,17 +70,19 @@ function ding_debt_easy_payment_get_url($amount, $params, $callback) {
     ]);
     drupal_set_message(t('There is a communication problem with the gateway. Please try again later.'));
     _ding_debt_easy_update_status_local($order_id, DING_DEBT_EASY_STATUS_FAILED);
+    _ding_debt_easy_remove_personal_info($order_id);
 
     return 'DING_DEBT_USER_DEBT_PAGE';
   }
   catch (PaymentException $exception) {
-    watchdog_exception('ding_debt_easy', $exception, 'There is an problem with creating the payment for order %order_id', [
+    watchdog_exception('ding_debt_easy', $exception, 'There is a problem with creating the payment for order %order_id', [
       '%order_id' => $order_id,
     ]);
     drupal_set_message(t('There is an error with the payment gateway. Please try again later or contact the library with order ID: %order_id', [
       '%order_id' => $order_id,
     ]));
     _ding_debt_easy_update_status_local($order_id, DING_DEBT_EASY_STATUS_FAILED);
+    _ding_debt_easy_remove_personal_info($order_id);
 
     return 'DING_DEBT_USER_DEBT_PAGE';
   }
@@ -132,6 +134,44 @@ function ding_debt_easy_payment_terms() {
 }
 
 /**
+ * Generate buttons to submit debts form.
+ */
+function ding_debt_easy_payment_buttons() {
+  $form = [];
+
+  $form['internal_buttons'] = [
+    '#type' => 'container',
+    '#attributes' => [
+      'class' => ['pay-buttons'],
+    ],
+    '#tree' => FALSE,
+  ];
+
+  $form['internal_buttons']['pay_selected'] = [
+    '#type' => 'submit',
+    '#prefix' => '<div class="pay-button">',
+    '#value' => t('Pay selected debts'),
+    '#suffix' => '</div>',
+    '#submit' => ['ding_debt_debts_form_submit_pay_selected'],
+    '#states' => [
+      'disabled' => [
+        '#ding-debt-debts-form .form-type-checkbox input' => ['checked' => FALSE],
+      ],
+    ],
+  ];
+
+  $form['internal_buttons']['pay_all'] = [
+    '#type' => 'submit',
+    '#prefix' => '<div class="pay-button">',
+    '#value' => t('Pay all debts'),
+    '#suffix' => '</div>',
+    '#submit' => ['ding_debt_debts_form_submit_pay_all'],
+  ];
+
+  return $form;
+}
+
+/**
  * Added payment status to provider debts.
  *
  * @param \DingProviderDebt[] $debts
@@ -140,8 +180,8 @@ function ding_debt_easy_payment_terms() {
  * @return DingProviderDebt[]
  *   The debts object enriched with pending and failed status.
  */
-function ding_debt_easy_payment_status($debts) {
- $patron_id = 0;
+function ding_debt_easy_payment_status(array $debts) {
+  $patron_id = 0;
   try {
     $credentials = ding_user_get_creds();
     $patron_id = empty($credentials['patronId']) ? 0 : $credentials['patronId'];
@@ -155,7 +195,10 @@ function ding_debt_easy_payment_status($debts) {
       ->fields('e')
       ->condition('provider_ids', '%' . $debt->id . '%', 'LIKE')
       ->condition('patron_id', $patron_id)
-      ->condition('status', [DING_DEBT_EASY_STATUS_PENDING, DING_DEBT_EASY_STATUS_FAILED], 'IN')
+      ->condition('status', [
+        DING_DEBT_EASY_STATUS_PENDING,
+        DING_DEBT_EASY_STATUS_FAILED,
+      ], 'IN')
       ->orderBy('changed', 'DESC')
       ->execute()
       ->fetchAssoc();

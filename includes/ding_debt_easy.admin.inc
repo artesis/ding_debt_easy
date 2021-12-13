@@ -11,9 +11,11 @@
  * Administrative form used to configure the module.
  */
 function ding_debt_easy_admin_settings_form($form, &$form_state) {
+  $path = drupal_get_path('module', 'ding_debt_easy');
+
   $form['ding_debt_easy'] = [];
   $form['#attached']['css'] = array(
-    drupal_get_path('module', 'ding_debt_easy') . '/css/ding_debt_easy.admin.css',
+    $path . '/css/ding_debt_easy.admin.css',
   );
 
   $default_keys = variable_get('ding_debt_easy_keys', [
@@ -59,8 +61,8 @@ function ding_debt_easy_admin_settings_form($form, &$form_state) {
 
   $form['ding_debt_easy']['endpoints']['ding_debt_easy_api_endpoints'] = [
     '#type' => 'fieldset',
-    '#title' => t('Nets payments API'),
-    '#descriptions' => t('These end-point should not change, but if required they can be overridden in settings.php.'),
+    '#title' => t('Nets Easy payments API'),
+    '#descriptions' => t('These endpoints should not change, but if required they can be overridden in settings.php.'),
     '#collapsible' => TRUE,
     '#collapsed' => TRUE,
     '#tree' => TRUE,
@@ -68,13 +70,13 @@ function ding_debt_easy_admin_settings_form($form, &$form_state) {
 
   $form['ding_debt_easy']['endpoints']['ding_debt_easy_api_endpoints']['type'] = [
     '#type' => 'checkbox',
-    '#title' => t('Use testing end-point'),
+    '#title' => t('Use testing endpoint'),
     '#default_value' => $default_api['type'],
   ];
 
   $form['ding_debt_easy']['endpoints']['ding_debt_easy_api_endpoints']['prod'] = [
     '#type' => 'textfield',
-    '#title' => t('Production payments end-point'),
+    '#title' => t('Production payments endpoint'),
     '#description' => '',
     '#default_value' => $default_api['prod'],
     '#disabled' => TRUE,
@@ -83,7 +85,7 @@ function ding_debt_easy_admin_settings_form($form, &$form_state) {
 
   $form['ding_debt_easy']['endpoints']['ding_debt_easy_api_endpoints']['test'] = [
     '#type' => 'textfield',
-    '#title' => t('Test payments end-point'),
+    '#title' => t('Test payments endpoint'),
     '#default_value' => $default_api['test'],
     '#disabled' => TRUE,
     '#required' => TRUE,
@@ -96,7 +98,7 @@ function ding_debt_easy_admin_settings_form($form, &$form_state) {
   $form['ding_debt_easy']['endpoints']['ding_debt_easy_endpoints'] = [
     '#type' => 'fieldset',
     '#title' => t('Return/callback URL'),
-    '#description' => t('You should not change these URLs as it will/may break payment (mostly here for debug and you real need to  known what you are doing to change them.)'),
+    '#description' => t('You should not change these URLs as it will/may break payment (mostly here for debug and you really need to known what you are doing to change them.)'),
     '#collapsible' => TRUE,
     '#collapsed' => TRUE,
     '#tree' => TRUE,
@@ -170,9 +172,10 @@ function ding_debt_easy_admin_settings_form($form, &$form_state) {
     '#default_value' => _ding_debt_easy_get_wipe_interval(),
   ];
 
+  $terms_text = file_get_contents($path . '/defaults/betalingsbetingelser.html');
   $default_terms = variable_get('ding_debt_easy_terms', [
     'text' => [
-      'value' => '',
+      'value' => $terms_text,
       'format' => 'ding_wysiwyg',
     ],
     'url' => '',
@@ -181,7 +184,7 @@ function ding_debt_easy_admin_settings_form($form, &$form_state) {
   $form['ding_debt_easy']['ding_debt_easy_terms'] = [
     '#type' => 'fieldset',
     '#title' => t('Terms declaration'),
-    '#description' => t('If these are <strong>not</strong> filled in the defaults text/url used by Nets easy payments will be used. See <a href=@url>Legal & Compliance</a> at Nets.', [
+    '#description' => t('If these are <strong>not</strong> filled in the defaults text/url used by Nets Easy payments will be used. See <a href=@url>Legal & Compliance</a> at Nets.', [
       '@url' => 'https://www.nets.eu/dk/payments/customerservice/legal-compliance/easy/',
     ]),
     '#collapsible' => TRUE,
@@ -206,9 +209,10 @@ function ding_debt_easy_admin_settings_form($form, &$form_state) {
     '#rows' => 15,
   ];
 
+  $privacy_text = file_get_contents($path . '/defaults/privatlivsvilkaar.html');
   $default_privacy = variable_get('ding_debt_easy_privacy', [
     'text' => [
-      'value' => '',
+      'value' => $privacy_text,
       'format' => 'ding_wysiwyg',
     ],
     'url' => '',
@@ -217,7 +221,7 @@ function ding_debt_easy_admin_settings_form($form, &$form_state) {
   $form['ding_debt_easy']['ding_debt_easy_privacy'] = [
     '#type' => 'fieldset',
     '#title' => t('Privacy declaration'),
-    '#description' => t('If these are <strong>not</strong> filled in the defaults text/url used by Nets easy payments will be used. See <a href=@url>Legal & Compliance</a> at Nets.', [
+    '#description' => t('If these are <strong>not</strong> filled in the defaults text/url used by Nets Easy payments will be used. See <a href=@url>Legal & Compliance</a> at Nets.', [
       '@url' => 'https://www.nets.eu/dk/payments/customerservice/legal-compliance/easy/',
     ]),
     '#collapsible' => TRUE,

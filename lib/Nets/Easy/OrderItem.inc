@@ -8,7 +8,7 @@ namespace Nets\Easy;
 class OrderItem {
 
   private $reference = '';
-  private $name = '';
+  private $productName = '';
   private $quantity = 0;
   private $unit = '';
   private $unitPrice = 0;
@@ -43,20 +43,20 @@ class OrderItem {
    * @return string
    *   The product name.
    */
-  public function getName() {
-    return $this->name;
+  public function getProductName() {
+    return $this->productName;
   }
 
   /**
    * Set product name for this order item.
    *
-   * @param string $name
+   * @param string $productName
    *   The product name.
    *
    * @return $this
    */
-  public function setName($name) {
-    $this->name = $name;
+  public function setProductName($productName) {
+    $this->productName = $productName;
 
     return $this;
   }
@@ -152,11 +152,13 @@ class OrderItem {
   public function toArray() {
     $item = [
       'reference' => $this->getReference(),
-      'name' => $this->getName(),
+      'name' => $this->getProductName(),
       'quantity' => $this->getQuantity(),
       'unit' => $this->getUnit(),
       'unitPrice' => $this->getUnitPrice(),
     ];
+
+    // Net and gross are the same as the libraries do not use VAT.
     $item['grossTotalAmount'] = $this->getTotalAmount();
     $item['netTotalAmount'] = $this->getTotalAmount();
 

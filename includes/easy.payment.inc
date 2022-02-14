@@ -25,13 +25,10 @@ function ding_debt_easy_payment_get_url($amount, $params, $callback) {
   // having this id will be that we can't retry payment if FBS is down or slow.
   // So pending payments that fail at first will hang in pending state. This was
   // the best solution without assuming too much about the provider.
-  $patron_id = 0;
-  try {
-    $credentials = ding_user_get_creds();
-    $patron_id = empty($credentials['patronId']) ? 0 : $credentials['patronId'];
-  }
-  catch (DingProviderAuthException $exception) {
-    watchdog_exception('ding_debt_easy', $exception, 'Unable to get patron id, payment retries is not available');
+  $patron_id = ding_user_provider_id();
+  if (is_null($patron_id)) {
+    $patron_id = 0;
+    watchdog('ding_debt_easy', 'Unable to get patron id, payment retries is not available', [], WATCHDOG_CRITICAL);
   }
 
   $checkout = new Checkout();
@@ -41,9 +38,11 @@ function ding_debt_easy_payment_get_url($amount, $params, $callback) {
   foreach ($params['debts'] as $id => $debt) {
     $item = new OrderItem();
     $item->setReference($id)
-      ->setName($debt->type)
+      ->setProductName($debt->type)
       ->setQuantity(1)
       ->setUnit('stk')
+      // The amount used by the payment gateway is in "øre" hence the
+      // conversion as the amount from the provider is in kr.
       ->setUnitPrice($debt->amount * 100);
     $checkout->getOrder()->addOrderItem($item);
   }
@@ -55,7 +54,7 @@ function ding_debt_easy_payment_get_url($amount, $params, $callback) {
     ->setReturnUrl(url(ding_debt_easy_get_return_url(), ['absolute' => TRUE]))
     ->setCancelUrl(url(ding_debt_easy_get_cancel_url(), ['absolute' => TRUE]));
 
-  $order_id = _ding_debt_easy_get_order_id_local($patron_id, $item_ids, $checkout->getOrder()->getTotalAmount());
+  $order_id = _ding_debt_easy_create_order_local($patron_id, $item_ids, $checkout->getOrder()->getTotalAmount());
   $checkout->getOrder()->setReference($order_id);
 
   // Create payment with the checkout and order as payload.
@@ -72,7 +71,7 @@ function ding_debt_easy_payment_get_url($amount, $params, $callback) {
     _ding_debt_easy_update_status_local($order_id, DING_DEBT_EASY_STATUS_FAILED);
     _ding_debt_easy_remove_personal_info($order_id);
 
-    return 'DING_DEBT_USER_DEBT_PAGE';
+    return DING_DEBT_USER_DEBT_PAGE;
   }
   catch (PaymentException $exception) {
     watchdog_exception('ding_debt_easy', $exception, 'There is a problem with creating the payment for order %order_id', [
@@ -84,7 +83,7 @@ function ding_debt_easy_payment_get_url($amount, $params, $callback) {
     _ding_debt_easy_update_status_local($order_id, DING_DEBT_EASY_STATUS_FAILED);
     _ding_debt_easy_remove_personal_info($order_id);
 
-    return 'DING_DEBT_USER_DEBT_PAGE';
+    return DING_DEBT_USER_DEBT_PAGE;
   }
 
   // Store information about the payment state.
@@ -112,6 +111,7 @@ function ding_debt_easy_payment_cards_supported() {
   $form['ding_debt_easy_cards'] = [
     '#theme' => 'ding_debt_easy_cards_supported',
     '#cards' => $cards,
+    '#weight' => 10,
   ];
 
   return $form;
@@ -128,6 +128,7 @@ function ding_debt_easy_payment_terms() {
     '#theme' => 'ding_debt_easy_terms',
     '#terms' => $terms['text']['value'],
     '#url' => $terms['url'],
+    '#weight' => 20,
   ];
 
   return $form;
@@ -153,6 +154,7 @@ function ding_debt_easy_payment_buttons() {
     '#value' => t('Pay selected debts'),
     '#suffix' => '</div>',
     '#submit' => ['ding_debt_debts_form_submit_pay_selected'],
+    '#weight' => 1,
     '#states' => [
       'disabled' => [
         '#ding-debt-debts-form .form-type-checkbox input' => ['checked' => FALSE],
@@ -164,6 +166,7 @@ function ding_debt_easy_payment_buttons() {
     '#type' => 'submit',
     '#prefix' => '<div class="pay-button">',
     '#value' => t('Pay all debts'),
+    '#weight' => 5,
     '#suffix' => '</div>',
     '#submit' => ['ding_debt_debts_form_submit_pay_all'],
   ];
@@ -181,13 +184,10 @@ function ding_debt_easy_payment_buttons() {
  *   The debts object enriched with pending and failed status.
  */
 function ding_debt_easy_payment_status(array $debts) {
-  $patron_id = 0;
-  try {
-    $credentials = ding_user_get_creds();
-    $patron_id = empty($credentials['patronId']) ? 0 : $credentials['patronId'];
-  }
-  catch (DingProviderAuthException $exception) {
-    watchdog_exception('ding_debt_easy', $exception, 'Unable to get patron id, payment status is not available');
+  $patron_id = ding_user_provider_id();
+  if (is_null($patron_id)) {
+    $patron_id = 0;
+    watchdog('ding_debt_easy', 'Unable to get patron id, payment status is not available', [], WATCHDOG_CRITICAL);
   }
 
   foreach ($debts as &$debt) {

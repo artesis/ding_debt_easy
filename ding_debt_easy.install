@@ -22,15 +22,15 @@ function ding_debt_easy_schema() {
       ],
       'patron_id' => [
         'description' => 'The providers id for the patron for this payment.',
-        'type' => 'int',
+        'type' => 'varchar',
+        'length' => 255,
         'not null' => TRUE,
       ],
       'order_id' => [
         'description' => 'Internal CMS order id.',
         'type' => 'varchar',
         'length' => 255,
-        'not null' => TRUE,
-        'default' => ''
+        'not null' => FALSE,
       ],
       'payment_id' => [
         'description' => 'Id of the payment at the gateway.',
@@ -52,6 +52,7 @@ function ding_debt_easy_schema() {
       ],
       'amount' => [
         'description' => 'The amount reserved at the payment gateway.',
+        // This type is an int as the payment gateway uses "øre" as unit.
         'type' => 'int',
         'not null' => FALSE,
         'default' => 0,
@@ -76,7 +77,8 @@ function ding_debt_easy_schema() {
       ],
     ],
     'indexes' => [
-      'id_index' => ['payment_id', 'provider_ids', 'order_id'],
+      'id_order_index' => ['order_id'],
+      'id_payment_index' => ['payment_id'],
     ],
     'primary key' => ['id'],
   ];
@@ -84,6 +86,14 @@ function ding_debt_easy_schema() {
   $schema['cache_ding_debt_easy'] = drupal_get_schema_unprocessed('system', 'cache');
 
   return $schema;
+}
+
+/**
+ * Implements hook_install().
+ */
+function ding_debt_easy_install() {
+  // Set 'perform payment' permission for "Godkendt bruger" role.
+  user_role_grant_permissions(2, ['perform payment']);
 }
 
 /**

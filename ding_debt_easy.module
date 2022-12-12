@@ -524,14 +524,6 @@ function _ding_debt_easy_callback() {
   // Fetch order details form the database.
   $local_record = _ding_debt_easy_get_payment_local($payment_id);
 
-  // Fetch order details form the database.
-  if (_ding_debt_easy_validate_payment($payment_id, $local_record)) {
-    $client = _ding_debt_easy_get_client();
-    $data = $client->fetchPayment($payment_id);
-    $amount = $data['orderDetails']['amount'];
-    _ding_debt_easy_process_payment($payment_id, $local_record, $amount);
-  }
-
   // Inform user. As the payment status is handle in async web-hooks we may get
   // here before the payment have been processed. So we only have to different
   // message we can set.
@@ -590,7 +582,13 @@ function _ding_debt_easy_webhook() {
 
   switch ($data['event']) {
     case 'payment.checkout.completed':
-      _ding_debt_easy_update_status_local($payment_id, DING_DEBT_EASY_STATUS_COMPLETED);
+      // Get data needed from the payload.
+      $amount = $data['data']['order']['amount']['amount'];
+
+      // Fetch order details form the database.
+      if (_ding_debt_easy_validate_payment($payment_id, $local_record)) {
+        _ding_debt_easy_process_payment($payment_id, $local_record, $amount);
+      }
       break;
 
     case 'payment.cancel.created':

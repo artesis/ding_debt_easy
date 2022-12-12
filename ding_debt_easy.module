@@ -577,26 +577,20 @@ function _ding_debt_easy_webhook() {
   // Validate HTTP_AUTHORIZATION header to ensure call comes from nets.
   $token = $_SERVER['HTTP_AUTHORIZATION'];
   if ($local_record['auth'] !== $token) {
-    watchdog('ding_debt_easy', 'Web-hook callback with wrong authorization header. Payment id: %id', ['%id' => $payment_id], 'WATCHDOG_WARNING');
+    watchdog('ding_debt_easy', 'Web-hook callback with wrong authorization header. Payment id: %id', ['%id' => $payment_id], WATCHDOG_WARNING);
     return;
   }
 
   // The payment gateway web-hooks seen calling back two or more times with the
   // same order sometimes, so to protect against this we have this extra check.
   if (DING_DEBT_EASY_STATUS_COMPLETED === $local_record['status']) {
-    watchdog('ding_debt_easy', 'Web-hook callback all ready completed. Payment id: %id', ['%id' => $payment_id], 'WATCHDOG_WARNING');
+    watchdog('ding_debt_easy', 'Web-hook callback all ready completed. Payment id: %id', ['%id' => $payment_id], WATCHDOG_WARNING);
     return;
   }
 
   switch ($data['event']) {
     case 'payment.checkout.completed':
-      // Get data needed from the payload.
-      $amount = $data['data']['order']['amount']['amount'];
-
-      // Fetch order details form the database.
-      if (_ding_debt_easy_validate_payment($payment_id, $local_record)) {
-        _ding_debt_easy_process_payment($payment_id, $local_record, $amount);
-      }
+      _ding_debt_easy_update_status_local($payment_id, DING_DEBT_EASY_STATUS_COMPLETED);
       break;
 
     case 'payment.cancel.created':
